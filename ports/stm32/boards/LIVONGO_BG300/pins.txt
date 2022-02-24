@@ -1,0 +1,73 @@
+PB9  I2C1_SDA       (RTC, EEPROM, FuelGauge)
+PB8  I2C1_SCL       (RTC, EEPROM, FuelGauge)
+PB4  I2C3_SDA       (CTP)
+PA8  I2C3_SCL       (CTP)
+PB15 SPI2_MOSI
+PB14 SPI2_MISO
+PB13 SPI2_CLK
+PD5  USART2_TX      (Modem RX)
+PD6  USART2_RX      (Modem TX)
+PD3  USART2_CTS     (Modem RTS)
+PD4  USART2_RTS     (Modem CTS)
+PD0  IN             (Modem DSR)
+PD1  OUT            (Modem DTR)
+PD8  IN             (Modem STATUS)
+PD9  IN             (Modem POWERMON)
+PD10 OUT            (Modem RESET)
+PD11 OUT            (Modem ON/OFF)
+PA15 EXTI15         (SDCARD_IN)
+PC12 SDIO_CK
+PD2  SDIO_CMD
+PC8  SDIO_D0
+PC9  SDIO_D1
+PC10 SDIO_D2
+PC11 SDIO_D3
+PB12 OUT            (ACCEL_CS)
+PB10 EXTI10         (ACCEL_INT1)
+PA12 USB_OTG_FS_DP
+PA11 USB_OTG_FS_DM
+PA3  TIM2_CH4       (Buzzer)
+PC3  EXTI3          (RTC_ALARM)
+PB6  EXTI6          (FG_ALRT)
+PA2  IN             (Battery CHG)
+PC1  EXTI1          (Battery PGOOD)
+PA0  SYS_WKUP       (CPU Wakeup)
+PC0  EXTI0          (POWER_TOGGLE)
+PA1  OUT            (SHTDWN)
+PD12 OUT            (ENABLE_PERIPHERAL)
+PD7  OUT            (TOUCH_CS)
+PA4  EXTI4          (TOUCH_INT)
+PB1  OUT            (TFT_BACKLIGHT)
+PB0  TIM3_CH3       (TFT_BRIGHTNESS)
+PC4  OUT            (TFT_RESET)
+PC5  OUT            (TFT_MODE)
+PA5  OUT            (TFT_RD)
+PA6  OUT            (TFT_WR)
+PA7  OUT            (TFT_RS)
+PE0  GPIO           (TFT_D0)
+PE1  GPIO           (TFT_D1)
+PE2  GPIO           (TFT_D2)
+PE3  GPIO           (TFT_D3)
+PE4  GPIO           (TFT_D4)
+PE5  GPIO           (TFT_D5)
+PE6  GPIO           (TFT_D6)
+PE7  GPIO           (TFT_D7)
+PE8  GPIO           (TFT_D8)
+PE9  GPIO           (TFT_D9)
+PE10 GPIO           (TFT_D10)
+PE11 GPIO           (TFT_D11)
+PE12 GPIO           (TFT_D12)
+PE13 GPIO           (TFT_D13)
+PE14 GPIO           (TFT_D14)
+PE15 GPIO           (TFT_D15)
+PC2  EXTI2          (BG_STRIPIN)
+PD13 OUT            (BG_STRIPIN_SEL1)
+PD14 OUT            (BG_STRIPIN_SEL2)
+PD15 OUT            (BG_PWR_EN)
+PC6  USART6_TX      (BG_RXD)
+PC7  USART6_RX      (BG_TXD)
+PA13 SYS_JTMS-SWDIO
+PA14 SYS_JTMS-SWCLK
+PB3  SYS_JTMS-SWO
+PA10 USART1_TX      (DBG_UART_TX)
+PA9  USART1_RX      (DBG_UART_RX)
