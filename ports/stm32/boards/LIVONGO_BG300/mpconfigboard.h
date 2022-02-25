@@ -57,7 +57,7 @@
 #define MICROPY_HW_LED_OFF(pin) (mp_hal_pin_low(pin))
 
 // Board-specific initialization
-#define MICROPY_BOARD_EARLY_INIT    bg300_init
+#define MICROPY_BOARD_EARLY_INIT    bsp_init
 
 // Function declarations
-void bg300_init(void);
+void bsp_init(void);
