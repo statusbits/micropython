@@ -4,6 +4,7 @@
 #define MICROPY_HW_HAS_SWITCH   (1)
 #define MICROPY_HW_HAS_FLASH    (1)
 #define MICROPY_HW_ENABLE_RTC   (1)
+#define MICROPY_HW_ENABLE_USB   (1)
 //#define MICROPY_HW_ENABLE_SERVO (1)
 
 // HSE is 8MHz, HSI is 16MHz CPU freq set to 84MHz
@@ -18,6 +19,11 @@
 #define MICROPY_HW_CLK_PLLN     (336)
 #define MICROPY_HW_CLK_PLLP     (RCC_PLLP_DIV4)
 #define MICROPY_HW_CLK_PLLQ     (7)
+
+// USB config
+#define MICROPY_HW_USB_FS               (1)
+#define MICROPY_HW_USB_MSC              (1)
+//#define MICROPY_HW_USB_VBUS_DETECT_PIN  (pin_C1)
 
 // UART config
 #define MICROPY_HW_UART1_TX     (pin_A10)
