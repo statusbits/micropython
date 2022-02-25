@@ -316,6 +316,39 @@ void gpio_write(pin_id_t pin_id, int state);
 void gpio_toggle(pin_id_t pin_id);
 
 /**
+ * @brief   Initialize the beeper.
+ */
+void beeper_init(void);
+
+/**
+ * @brief   De-initialize the beeper.
+ */
+void beeper_deinit(void);
+
+/**
+ * @brief   Turn the beeper on.
+ */
+void beeper_on(void);
+
+/**
+ * @brief   Turn the beeper off.
+ */
+void beeper_off(void);
+
+/**
+ * @brief   Set the beeper tone frequency (pitch).
+ * @param   hz      Beeper tone frequency in Hz
+ * @note    This operation turns off the beeper.
+ */
+void beeper_freq(uint16_t hz);
+
+/**
+ * @brief   Make a beeping sound.
+ * @param   ms      Beep duration in milliseconds
+ */
+void beeper_beep(uint16_t ms);
+
+/**
  * @brief   Initialize board.
  */
 void bsp_init(void);

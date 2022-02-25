@@ -44,4 +44,10 @@ void bsp_init(void)
 {
     // Configure GPIO pins
     gpio_init(pin_conf);
+
+    // Initialize the beeper
+    beeper_init();
+
+    // Make a sound
+    beeper_beep(100);
 }
