@@ -328,6 +328,9 @@ STATIC mp_obj_t machine_i2c_scan(mp_obj_t self_in) {
         if (ret == 0) {
             mp_obj_list_append(list, MP_OBJ_NEW_SMALL_INT(addr));
         }
+        #ifdef MICROPY_EVENT_POLL_HOOK
+        MICROPY_EVENT_POLL_HOOK
+        #endif
     }
     return list;
 }
@@ -417,7 +420,7 @@ STATIC mp_obj_t machine_i2c_readfrom(size_t n_args, const mp_obj_t *args) {
     if (ret < 0) {
         mp_raise_OSError(-ret);
     }
-    return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
+    return mp_obj_new_bytes_from_vstr(&vstr);
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(machine_i2c_readfrom_obj, 3, 4, machine_i2c_readfrom);
 
@@ -514,6 +517,22 @@ STATIC int read_mem(mp_obj_t self_in, uint16_t addr, uint32_t memaddr, uint8_t a
     uint8_t memaddr_buf[4];
     size_t memaddr_len = fill_memaddr_buf(&memaddr_buf[0], memaddr, addrsize);
 
+    #if MICROPY_PY_MACHINE_I2C_TRANSFER_WRITE1
+    // The I2C transfer function may support the MP_MACHINE_I2C_FLAG_WRITE1 option
+    mp_machine_i2c_p_t *i2c_p = (mp_machine_i2c_p_t *)self->type->protocol;
+    if (i2c_p->transfer_supports_write1) {
+        // Create partial write and read buffers
+        mp_machine_i2c_buf_t bufs[2] = {
+            {.len = memaddr_len, .buf = memaddr_buf},
+            {.len = len, .buf = buf},
+        };
+
+        // Do write+read I2C transfer
+        return i2c_p->transfer(self, addr, 2, bufs,
+            MP_MACHINE_I2C_FLAG_WRITE1 | MP_MACHINE_I2C_FLAG_READ | MP_MACHINE_I2C_FLAG_STOP);
+    }
+    #endif
+
     int ret = mp_machine_i2c_writeto(self, addr, memaddr_buf, memaddr_len, false);
     if (ret != memaddr_len) {
         // must generate STOP
@@ -565,7 +584,7 @@ STATIC mp_obj_t machine_i2c_readfrom_mem(size_t n_args, const mp_obj_t *pos_args
         mp_raise_OSError(-ret);
     }
 
-    return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
+    return mp_obj_new_bytes_from_vstr(&vstr);
 }
 MP_DEFINE_CONST_FUN_OBJ_KW(machine_i2c_readfrom_mem_obj, 1, machine_i2c_readfrom_mem);
 
@@ -668,8 +687,7 @@ STATIC void mp_machine_soft_i2c_init(mp_obj_base_t *self_in, size_t n_args, cons
 
 STATIC mp_obj_t mp_machine_soft_i2c_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *args) {
     // create new soft I2C object
-    machine_i2c_obj_t *self = m_new_obj(machine_i2c_obj_t);
-    self->base.type = &mp_machine_soft_i2c_type;
+    machine_i2c_obj_t *self = mp_obj_malloc(machine_i2c_obj_t, &mp_machine_soft_i2c_type);
     mp_map_t kw_args;
     mp_map_init_fixed_table(&kw_args, n_kw, args + n_args);
     mp_machine_soft_i2c_init(&self->base, n_args, args, &kw_args);

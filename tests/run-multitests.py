@@ -18,7 +18,7 @@ if os.name == "nt":
     MICROPYTHON = os.getenv("MICROPY_MICROPYTHON", "../ports/windows/micropython.exe")
 else:
     CPYTHON3 = os.getenv("MICROPY_CPYTHON3", "python3")
-    MICROPYTHON = os.getenv("MICROPY_MICROPYTHON", "../ports/unix/micropython")
+    MICROPYTHON = os.getenv("MICROPY_MICROPYTHON", "../ports/unix/build-standard/micropython")
 
 # For diff'ing test output
 DIFF = os.getenv("MICROPY_DIFF", "diff -u")
@@ -63,10 +63,16 @@ class multitest:
     @staticmethod
     def get_network_ip():
         try:
-            import network
-            ip = network.WLAN().ifconfig()[0]
+            ip = nic.ifconfig()[0]
         except:
-            ip = HOST_IP
+            try:
+                import network
+                if hasattr(network, "WLAN"):
+                    ip = network.WLAN().ifconfig()[0]
+                else:
+                    ip = network.LAN().ifconfig()[0]
+            except:
+                ip = HOST_IP
         return ip
 
 {}

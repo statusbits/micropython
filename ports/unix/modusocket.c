@@ -49,6 +49,8 @@
 #include "extmod/vfs.h"
 #include <poll.h>
 
+#if MICROPY_PY_SOCKET
+
 /*
   The idea of this module is to implement reasonable minimum of
   socket-related functions to write typical clients and servers.
@@ -80,8 +82,7 @@ static inline mp_obj_t mp_obj_from_sockaddr(const struct sockaddr *addr, socklen
 }
 
 STATIC mp_obj_socket_t *socket_new(int fd) {
-    mp_obj_socket_t *o = m_new_obj(mp_obj_socket_t);
-    o->base.type = &mp_type_socket;
+    mp_obj_socket_t *o = mp_obj_malloc(mp_obj_socket_t, &mp_type_socket);
     o->fd = fd;
     o->blocking = true;
     return o;
@@ -403,7 +404,7 @@ STATIC MP_DEFINE_CONST_FUN_OBJ_2(socket_setblocking_obj, socket_setblocking);
 
 STATIC mp_obj_t socket_settimeout(mp_obj_t self_in, mp_obj_t timeout_in) {
     mp_obj_socket_t *self = MP_OBJ_TO_PTR(self_in);
-    struct timeval tv = {0,};
+    struct timeval tv = {0, };
     bool new_blocking = true;
 
     // Timeout of None means no timeout, which in POSIX is signified with 0 timeout,
@@ -558,12 +559,11 @@ STATIC mp_obj_t mod_socket_inet_ntop(mp_obj_t family_in, mp_obj_t binaddr_in) {
         mp_raise_OSError(errno);
     }
     vstr.len = strlen(vstr.buf);
-    return mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
+    return mp_obj_new_str_from_utf8_vstr(&vstr);
 }
 STATIC MP_DEFINE_CONST_FUN_OBJ_2(mod_socket_inet_ntop_obj, mod_socket_inet_ntop);
 
 STATIC mp_obj_t mod_socket_getaddrinfo(size_t n_args, const mp_obj_t *args) {
-    // TODO: Implement 5th and 6th args
 
     const char *host = mp_obj_str_get_str(args[0]);
     const char *serv = NULL;
@@ -599,6 +599,12 @@ STATIC mp_obj_t mod_socket_getaddrinfo(size_t n_args, const mp_obj_t *args) {
         hints.ai_family = MP_OBJ_SMALL_INT_VALUE(args[2]);
         if (n_args > 3) {
             hints.ai_socktype = MP_OBJ_SMALL_INT_VALUE(args[3]);
+            if (n_args > 4) {
+                hints.ai_protocol = MP_OBJ_SMALL_INT_VALUE(args[4]);
+                if (n_args > 5) {
+                    hints.ai_flags = MP_OBJ_SMALL_INT_VALUE(args[5]);
+                }
+            }
         }
     }
 
@@ -632,7 +638,7 @@ STATIC mp_obj_t mod_socket_getaddrinfo(size_t n_args, const mp_obj_t *args) {
     freeaddrinfo(addr_list);
     return list;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_socket_getaddrinfo_obj, 2, 4, mod_socket_getaddrinfo);
+STATIC MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mod_socket_getaddrinfo_obj, 2, 6, mod_socket_getaddrinfo);
 
 STATIC mp_obj_t mod_socket_sockaddr(mp_obj_t sockaddr_in) {
     mp_buffer_info_t bufinfo;
@@ -702,3 +708,7 @@ const mp_obj_module_t mp_module_socket = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t *)&mp_module_socket_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_usocket, mp_module_socket);
+
+#endif // MICROPY_PY_SOCKET

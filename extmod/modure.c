@@ -33,6 +33,10 @@
 #include "py/objstr.h"
 #include "py/stackctrl.h"
 
+#if MICROPY_PY_BUILTINS_STR_UNICODE
+#include "py/unicode.h"
+#endif
+
 #if MICROPY_PY_URE
 
 #define re1_5_stack_chk() MP_STACK_CHECK()
@@ -120,6 +124,18 @@ STATIC void match_span_helper(size_t n_args, const mp_obj_t *args, mp_obj_t span
         s = start - begin;
         e = self->caps[no * 2 + 1] - begin;
     }
+
+    #if MICROPY_PY_BUILTINS_STR_UNICODE
+    if (mp_obj_get_type(self->str) == &mp_type_str) {
+        const byte *begin = (const byte *)mp_obj_str_get_str(self->str);
+        if (s != -1) {
+            s = utf8_ptr_to_index(begin, begin + s);
+        }
+        if (e != -1) {
+            e = utf8_ptr_to_index(begin, begin + e);
+        }
+    }
+    #endif
 
     span[0] = mp_obj_new_int(s);
     span[1] = mp_obj_new_int(e);
@@ -372,7 +388,11 @@ STATIC mp_obj_t re_sub_helper(size_t n_args, const mp_obj_t *args) {
     // Add post-match string
     vstr_add_strn(&vstr_return, subj.begin, subj.end - subj.begin);
 
-    return mp_obj_new_str_from_vstr(mp_obj_get_type(where), &vstr_return);
+    if (mp_obj_get_type(where) == &mp_type_str) {
+        return mp_obj_new_str_from_utf8_vstr(&vstr_return);
+    } else {
+        return mp_obj_new_bytes_from_vstr(&vstr_return);
+    }
 }
 
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(re_sub_obj, 3, 5, re_sub_helper);
@@ -406,8 +426,7 @@ STATIC mp_obj_t mod_re_compile(size_t n_args, const mp_obj_t *args) {
     if (size == -1) {
         goto error;
     }
-    mp_obj_re_t *o = m_new_obj_var(mp_obj_re_t, char, size);
-    o->base.type = &re_type;
+    mp_obj_re_t *o = mp_obj_malloc_var(mp_obj_re_t, char, size, &re_type);
     #if MICROPY_PY_URE_DEBUG
     int flags = 0;
     if (n_args > 1) {
@@ -448,6 +467,8 @@ const mp_obj_module_t mp_module_ure = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t *)&mp_module_re_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_ure, mp_module_ure);
 #endif
 
 // Source files #include'd here to make sure they're compiled in

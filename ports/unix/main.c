@@ -63,6 +63,11 @@ STATIC uint emit_opt = MP_EMIT_OPT_NONE;
 long heap_size = 1024 * 1024 * (sizeof(mp_uint_t) / 4);
 #endif
 
+// Number of heaps to assign by default if MICROPY_GC_SPLIT_HEAP=1
+#ifndef MICROPY_GC_SPLIT_HEAP_N_HEAPS
+#define MICROPY_GC_SPLIT_HEAP_N_HEAPS (1)
+#endif
+
 STATIC void stderr_print_strn(void *env, const char *str, size_t len) {
     (void)env;
     ssize_t ret;
@@ -328,6 +333,10 @@ STATIC void print_help(char **argv) {
         , heap_size);
     impl_opts_cnt++;
     #endif
+    #if defined(__APPLE__)
+    printf("  realtime -- set thread priority to realtime\n");
+    impl_opts_cnt++;
+    #endif
 
     if (impl_opts_cnt == 0) {
         printf("  (none)\n");
@@ -399,6 +408,15 @@ STATIC void pre_process_options(int argc, char **argv) {
                         goto invalid_arg;
                     }
                 #endif
+                #if defined(__APPLE__)
+                } else if (strcmp(argv[a + 1], "realtime") == 0) {
+                    #if MICROPY_PY_THREAD
+                    mp_thread_is_realtime_enabled = true;
+                    #endif
+                    // main thread was already intialized before the option
+                    // was parsed, so we have to enable realtime here.
+                    mp_thread_set_realtime();
+                #endif
                 } else {
                 invalid_arg:
                     exit(invalid_args());
@@ -464,8 +482,22 @@ MP_NOINLINE int main_(int argc, char **argv) {
     pre_process_options(argc, argv);
 
     #if MICROPY_ENABLE_GC
+    #if !MICROPY_GC_SPLIT_HEAP
     char *heap = malloc(heap_size);
     gc_init(heap, heap + heap_size);
+    #else
+    assert(MICROPY_GC_SPLIT_HEAP_N_HEAPS > 0);
+    char *heaps[MICROPY_GC_SPLIT_HEAP_N_HEAPS];
+    long multi_heap_size = heap_size / MICROPY_GC_SPLIT_HEAP_N_HEAPS;
+    for (size_t i = 0; i < MICROPY_GC_SPLIT_HEAP_N_HEAPS; i++) {
+        heaps[i] = malloc(multi_heap_size);
+        if (i == 0) {
+            gc_init(heaps[i], heaps[i] + multi_heap_size);
+        } else {
+            gc_add(heaps[i], heaps[i] + multi_heap_size);
+        }
+    }
+    #endif
     #endif
 
     #if MICROPY_ENABLE_PYSTACK
@@ -527,7 +559,7 @@ MP_NOINLINE int main_(int argc, char **argv) {
                 vstr_init(&vstr, home_l + (p1 - p - 1) + 1);
                 vstr_add_strn(&vstr, home, home_l);
                 vstr_add_strn(&vstr, p + 1, p1 - p - 1);
-                path_items[i] = mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
+                path_items[i] = mp_obj_new_str_from_vstr(&vstr);
             } else {
                 path_items[i] = mp_obj_new_str_via_qstr(p, p1 - p);
             }
@@ -623,7 +655,7 @@ MP_NOINLINE int main_(int argc, char **argv) {
                     vstr_init(&vstr, len + sizeof(".__main__"));
                     vstr_add_strn(&vstr, argv[a + 1], len);
                     vstr_add_strn(&vstr, ".__main__", sizeof(".__main__") - 1);
-                    import_args[0] = mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
+                    import_args[0] = mp_obj_new_str_from_vstr(&vstr);
                     goto reimport;
                 }
 
@@ -716,7 +748,13 @@ MP_NOINLINE int main_(int argc, char **argv) {
     #if MICROPY_ENABLE_GC && !defined(NDEBUG)
     // We don't really need to free memory since we are about to exit the
     // process, but doing so helps to find memory leaks.
+    #if !MICROPY_GC_SPLIT_HEAP
     free(heap);
+    #else
+    for (size_t i = 0; i < MICROPY_GC_SPLIT_HEAP_N_HEAPS; i++) {
+        free(heaps[i]);
+    }
+    #endif
     #endif
 
     // printf("total bytes = %d\n", m_get_total_bytes_allocated());
@@ -724,6 +762,9 @@ MP_NOINLINE int main_(int argc, char **argv) {
 }
 
 void nlr_jump_fail(void *val) {
+    #if MICROPY_USE_READLINE == 1
+    mp_hal_stdio_mode_orig();
+    #endif
     fprintf(stderr, "FATAL: uncaught NLR %p\n", val);
     exit(1);
 }

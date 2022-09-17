@@ -20,7 +20,7 @@ async def factorial(name, number):
     return f
 
 
-async def task(id, t=0.02):
+async def task(id, t=0.1):
     print("start", id)
     await asyncio.sleep(t)
     print("end", id)
@@ -30,11 +30,11 @@ async def task(id, t=0.02):
 async def task_loop(id):
     print("task_loop start", id)
     while True:
-        await asyncio.sleep(0.02)
+        await asyncio.sleep(0.1)
         print("task_loop loop", id)
 
 
-async def task_raise(id, t=0.02):
+async def task_raise(id, t=0.1):
     print("task_raise start", id)
     await asyncio.sleep(t)
     print("task_raise raise", id)
@@ -50,6 +50,11 @@ async def gather_task(t0, t1):
 async def main():
     # Simple gather with return values
     print(await asyncio.gather(factorial("A", 2), factorial("B", 3), factorial("C", 4)))
+
+    print("====")
+
+    # Gather with no awaitables
+    print(await asyncio.gather())
 
     print("====")
 
@@ -75,7 +80,7 @@ async def main():
     print(tasks[0].done(), tasks[1].done())
     for t in tasks:
         t.cancel()
-    await asyncio.sleep(0.04)
+    await asyncio.sleep(0.2)
 
     print("====")
 
@@ -92,9 +97,9 @@ async def main():
 
     # Cancel a multi gather.
     t = asyncio.create_task(gather_task(task(1), task(2)))
-    await asyncio.sleep(0.01)
+    await asyncio.sleep(0.05)
     t.cancel()
-    await asyncio.sleep(0.04)
+    await asyncio.sleep(0.2)
 
     # Test edge cases where the gather is cancelled just as tasks are created and ending.
     for i in range(1, 4):

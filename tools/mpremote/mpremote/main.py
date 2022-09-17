@@ -1,6 +1,6 @@
 """
 MicroPython Remote - Interaction and automation tool for MicroPython
-MIT license; Copyright (c) 2019-2021 Damien P. George
+MIT license; Copyright (c) 2019-2022 Damien P. George
 
 This program provides a set of utilities to interact with and automate a
 MicroPython device over a serial connection.  Commands supported are:
@@ -19,6 +19,7 @@ MicroPython device over a serial connection.  Commands supported are:
 
 import os, sys
 from collections.abc import Mapping
+import tempfile
 from textwrap import dedent
 
 import serial.tools.list_ports
@@ -28,6 +29,7 @@ from .console import Console, ConsolePosix
 
 _PROG = "mpremote"
 
+# (need_raw_repl, is_action, num_args_min, help_text)
 _COMMANDS = {
     "connect": (
         False,
@@ -39,6 +41,7 @@ _COMMANDS = {
         or any valid device name/path""",
     ),
     "disconnect": (False, False, 0, "disconnect current device"),
+    "edit": (True, True, 1, "edit files on the device"),
     "resume": (False, False, 0, "resume a previous mpremote session (will not auto soft-reset)"),
     "soft-reset": (False, True, 0, "perform a soft-reset of the device"),
     "mount": (
@@ -68,6 +71,7 @@ _COMMANDS = {
     "run": (True, True, 1, "run the given local script"),
     "fs": (True, True, 1, "execute filesystem commands on the device"),
     "help": (False, False, 0, "print help and exit"),
+    "version": (False, False, 0, "print version and exit"),
 }
 
 _BUILTIN_COMMAND_EXPANSIONS = {
@@ -81,6 +85,7 @@ _BUILTIN_COMMAND_EXPANSIONS = {
     "ls": "fs ls",
     "cp": "fs cp",
     "rm": "fs rm",
+    "touch": "fs touch",
     "mkdir": "fs mkdir",
     "rmdir": "fs rmdir",
     "df": [
@@ -109,6 +114,7 @@ _BUILTIN_COMMAND_EXPANSIONS = {
         "import machine; machine.RTC().datetime((2020, 1, 1, 0, 10, 0, 0, 0))",
     ],
     "--help": "help",
+    "--version": "version",
 }
 
 for port_num in range(4):
@@ -298,6 +304,19 @@ def show_progress_bar(size, total_size):
         )
 
 
+# Get all args up to the terminator ("+").
+# The passed args will be updated with these ones removed.
+def get_fs_args(args):
+    n = 0
+    for src in args:
+        if src == "+":
+            break
+        n += 1
+    fs_args = args[:n]
+    args[:] = args[n + 1 :]
+    return fs_args
+
+
 def do_filesystem(pyb, args):
     def _list_recursive(files, path):
         if os.path.isdir(path):
@@ -306,13 +325,23 @@ def do_filesystem(pyb, args):
         else:
             files.append(os.path.split(path))
 
-    if args[0] == "cp" and args[1] == "-r":
-        args.pop(0)
-        args.pop(0)
-        assert args[-1] == ":"
-        args.pop()
+    fs_args = get_fs_args(args)
+
+    # Don't be verbose when using cat, so output can be redirected to something.
+    verbose = fs_args[0] != "cat"
+
+    if fs_args[0] == "cp" and fs_args[1] == "-r":
+        fs_args.pop(0)
+        fs_args.pop(0)
+        if fs_args[-1] != ":":
+            print(f"{_PROG}: 'cp -r' destination must be ':'")
+            sys.exit(1)
+        fs_args.pop()
         src_files = []
-        for path in args:
+        for path in fs_args:
+            if path.startswith(":"):
+                print(f"{_PROG}: 'cp -r' source files must be local")
+                sys.exit(1)
             _list_recursive(src_files, path)
         known_dirs = {""}
         pyb.exec_("import uos")
@@ -327,10 +356,33 @@ def do_filesystem(pyb, args):
                 pyb,
                 ["cp", "/".join((dir, file)), ":" + dir + "/"],
                 progress_callback=show_progress_bar,
+                verbose=verbose,
             )
     else:
-        pyboard.filesystem_command(pyb, args, progress_callback=show_progress_bar)
-    args.clear()
+        try:
+            pyboard.filesystem_command(
+                pyb, fs_args, progress_callback=show_progress_bar, verbose=verbose
+            )
+        except OSError as er:
+            print(f"{_PROG}: {er}")
+            sys.exit(1)
+
+
+def do_edit(pyb, args):
+    if not os.getenv("EDITOR"):
+        raise pyboard.PyboardError("edit: $EDITOR not set")
+    for src in get_fs_args(args):
+        src = src.lstrip(":")
+        dest_fd, dest = tempfile.mkstemp(suffix=os.path.basename(src))
+        try:
+            print("edit :%s" % (src,))
+            os.close(dest_fd)
+            pyb.fs_touch(src)
+            pyb.fs_get(src, dest, progress_callback=show_progress_bar)
+            if os.system("$EDITOR '%s'" % (dest,)) == 0:
+                pyb.fs_put(dest, src, progress_callback=show_progress_bar)
+        finally:
+            os.unlink(dest)
 
 
 def do_repl_main_loop(pyb, console_in, console_out_write, *, code_to_inject, file_to_inject):
@@ -465,6 +517,12 @@ def print_help():
     print_commands_help(_command_expansions, 2)
 
 
+def print_version():
+    from . import __version__
+
+    print(f"{_PROG} {__version__}")
+
+
 def main():
     config = load_user_config()
     prepare_command_expansions(config)
@@ -497,6 +555,9 @@ def main():
                 continue
             elif cmd == "help":
                 print_help()
+                sys.exit(0)
+            elif cmd == "version":
+                print_version()
                 sys.exit(0)
             elif cmd == "resume":
                 auto_soft_reset = False
@@ -556,6 +617,8 @@ def main():
                     return ret
             elif cmd == "fs":
                 do_filesystem(pyb, args)
+            elif cmd == "edit":
+                do_edit(pyb, args)
             elif cmd == "repl":
                 do_repl(pyb, args)
 

@@ -41,6 +41,7 @@
 
 // Python internal features
 #define MICROPY_ENABLE_GC                   (1)
+#define MICROPY_ENABLE_FINALISER            (1)
 #define MICROPY_KBD_EXCEPTION               (1)
 #define MICROPY_HELPER_REPL                 (1)
 #define MICROPY_LONGINT_IMPL                (MICROPY_LONGINT_IMPL_MPZ)
@@ -56,6 +57,7 @@
 #define MICROPY_MODULE_WEAK_LINKS           (1)
 // Control over Python builtins
 #define MICROPY_PY_ASYNC_AWAIT              (0)
+#define MICROPY_PY_BUILTINS_BYTES_HEX       (1)
 #define MICROPY_PY_BUILTINS_STR_COUNT       (0)
 #define MICROPY_PY_BUILTINS_MEMORYVIEW      (1)
 #define MICROPY_PY_BUILTINS_SET             (0)
@@ -76,7 +78,6 @@
 #define MICROPY_PY_SYS_EXIT                 (1)
 #define MICROPY_PY_SYS_STDFILES             (1)
 #define MICROPY_PY_SYS_MAXSIZE              (1)
-#define MICROPY_PY_IO_FILEIO                (1)
 #define MICROPY_PY_IO                       (1)
 #define MICROPY_PY_IO_IOBASE                (1)
 
@@ -94,29 +95,6 @@
 #define MICROPY_PY_URANDOM                  (1)
 #define MICROPY_PY_UZLIB                    (1)
 #define MICROPY_PY_UASYNCIO                 (1)
-
-// Use VfsLfs's types for fileio/textio
-#define mp_type_fileio mp_type_vfs_lfs1_fileio
-#define mp_type_textio mp_type_vfs_lfs1_textio
-
-// Use VFS's functions for import stat and builtin open
-#define mp_import_stat mp_vfs_import_stat
-#define mp_builtin_open_obj mp_vfs_open_obj
-
-// Hooks to add builtins
-
-#define MICROPY_PORT_BUILTINS \
-    { MP_ROM_QSTR(MP_QSTR_open), MP_ROM_PTR(&mp_builtin_open_obj) },
-
-extern const struct _mp_obj_module_t mp_module_samd;
-extern const struct _mp_obj_module_t mp_module_utime;
-
-#define MICROPY_PORT_BUILTIN_MODULES \
-    { MP_ROM_QSTR(MP_QSTR_samd), MP_ROM_PTR(&mp_module_samd) }, \
-    { MP_ROM_QSTR(MP_QSTR_utime), MP_ROM_PTR(&mp_module_utime) }, \
-
-#define MICROPY_PORT_ROOT_POINTERS \
-    const char *readline_hist[8];
 
 #define MP_STATE_PORT MP_STATE_VM
 

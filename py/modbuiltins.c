@@ -250,7 +250,7 @@ STATIC mp_obj_t mp_builtin_input(size_t n_args, const mp_obj_t *args) {
     if (line.len == 0 && ret == CHAR_CTRL_D) {
         mp_raise_type(&mp_type_EOFError);
     }
-    return mp_obj_new_str_from_vstr(&mp_type_str, &line);
+    return mp_obj_new_str_from_vstr(&line);
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_builtin_input_obj, 0, 1, mp_builtin_input);
 
@@ -467,7 +467,7 @@ STATIC mp_obj_t mp_builtin_repr(mp_obj_t o_in) {
     mp_print_t print;
     vstr_init_print(&vstr, 16, &print);
     mp_obj_print_helper(&print, o_in, PRINT_REPR);
-    return mp_obj_new_str_from_vstr(&mp_type_str, &vstr);
+    return mp_obj_new_str_from_utf8_vstr(&vstr);
 }
 MP_DEFINE_CONST_FUN_OBJ_1(mp_builtin_repr_obj, mp_builtin_repr);
 
@@ -729,6 +729,9 @@ STATIC const mp_rom_map_elem_t mp_module_builtins_globals_table[] = {
     #endif
     { MP_ROM_QSTR(MP_QSTR_next), MP_ROM_PTR(&mp_builtin_next_obj) },
     { MP_ROM_QSTR(MP_QSTR_oct), MP_ROM_PTR(&mp_builtin_oct_obj) },
+    #if MICROPY_PY_IO
+    { MP_ROM_QSTR(MP_QSTR_open), MP_ROM_PTR(&mp_builtin_open_obj) },
+    #endif
     { MP_ROM_QSTR(MP_QSTR_ord), MP_ROM_PTR(&mp_builtin_ord_obj) },
     { MP_ROM_QSTR(MP_QSTR_pow), MP_ROM_PTR(&mp_builtin_pow_obj) },
     { MP_ROM_QSTR(MP_QSTR_print), MP_ROM_PTR(&mp_builtin_print_obj) },
@@ -784,3 +787,5 @@ const mp_obj_module_t mp_module_builtins = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t *)&mp_module_builtins_globals,
 };
+
+MP_REGISTER_MODULE(MP_QSTR_builtins, mp_module_builtins);

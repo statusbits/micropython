@@ -70,7 +70,7 @@ STATIC mp_obj_t mp_machine_spi_read(size_t n_args, const mp_obj_t *args) {
     vstr_init_len(&vstr, mp_obj_get_int(args[1]));
     memset(vstr.buf, n_args == 3 ? mp_obj_get_int(args[2]) : 0, vstr.len);
     mp_machine_spi_transfer(args[0], vstr.len, vstr.buf, vstr.buf);
-    return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
+    return mp_obj_new_bytes_from_vstr(&vstr);
 }
 MP_DEFINE_CONST_FUN_OBJ_VAR_BETWEEN(mp_machine_spi_read_obj, 2, 3, mp_machine_spi_read);
 
@@ -175,8 +175,7 @@ STATIC mp_obj_t mp_machine_soft_spi_make_new(const mp_obj_type_t *type, size_t n
     mp_arg_parse_all_kw_array(n_args, n_kw, all_args, MP_ARRAY_SIZE(allowed_args), allowed_args, args);
 
     // create new object
-    mp_machine_soft_spi_obj_t *self = m_new_obj(mp_machine_soft_spi_obj_t);
-    self->base.type = &mp_machine_soft_spi_type;
+    mp_machine_soft_spi_obj_t *self = mp_obj_malloc(mp_machine_soft_spi_obj_t, &mp_machine_soft_spi_type);
 
     // set parameters
     self->spi.delay_half = baudrate_to_delay_half(args[ARG_baudrate].u_int);

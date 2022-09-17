@@ -50,7 +50,7 @@
 ///     val = adc.read_core_vbat()      # read MCU VBAT
 ///     val = adc.read_core_vref()      # read MCU VREF
 
-/* ADC defintions */
+/* ADC definitions */
 #define ADCx                    (ADC1)
 #define PIN_ADC_MASK            PIN_ADC1
 #define pin_adc_table           pin_adc1
@@ -171,8 +171,8 @@
 #define EOC_TIMEOUT (10)
 
 /* Core temperature sensor definitions */
-#define CORE_TEMP_V25          (943)  /* (0.76v/3.3v)*(2^ADC resoultion) */
-#define CORE_TEMP_AVG_SLOPE    (3)    /* (2.5mv/3.3v)*(2^ADC resoultion) */
+#define CORE_TEMP_V25          (943)  /* (0.76v/3.3v)*(2^ADC resolution) */
+#define CORE_TEMP_AVG_SLOPE    (3)    /* (2.5mv/3.3v)*(2^ADC resolution) */
 
 // scale and calibration values for VBAT and VREF
 #define ADC_SCALE (ADC_SCALE_V / ((1 << ADC_CAL_BITS) - 1))
@@ -842,8 +842,7 @@ STATIC mp_obj_t adc_all_make_new(const mp_obj_type_t *type, size_t n_args, size_
     mp_arg_check_num(n_args, n_kw, 1, 2, false);
 
     // make ADCAll object
-    pyb_adc_all_obj_t *o = m_new_obj(pyb_adc_all_obj_t);
-    o->base.type = &pyb_adc_all_type;
+    pyb_adc_all_obj_t *o = mp_obj_malloc(pyb_adc_all_obj_t, &pyb_adc_all_type);
     mp_int_t res = mp_obj_get_int(args[0]);
     uint32_t en_mask = 0xffffffff;
     if (n_args > 1) {
@@ -857,6 +856,9 @@ STATIC mp_obj_t adc_all_make_new(const mp_obj_type_t *type, size_t n_args, size_
 STATIC mp_obj_t adc_all_read_channel(mp_obj_t self_in, mp_obj_t channel) {
     pyb_adc_all_obj_t *self = MP_OBJ_TO_PTR(self_in);
     uint32_t chan = adc_get_internal_channel(mp_obj_get_int(channel));
+    if (!is_adcx_channel(chan)) {
+        mp_raise_msg_varg(&mp_type_ValueError, MP_ERROR_TEXT("not a valid ADC Channel: %d"), chan);
+    }
     uint32_t data = adc_config_and_read_channel(&self->handle, chan);
     return mp_obj_new_int(data);
 }

@@ -552,7 +552,7 @@ mp_obj_t _socket_recvfrom(mp_obj_t self_in, mp_obj_t len_in,
     }
 
     vstr.len = ret;
-    return mp_obj_new_str_from_vstr(&mp_type_bytes, &vstr);
+    return mp_obj_new_bytes_from_vstr(&vstr);
 }
 
 STATIC mp_obj_t socket_recv(mp_obj_t self_in, mp_obj_t len_in) {
@@ -867,3 +867,8 @@ const mp_obj_module_t mp_module_usocket = {
     .base = { &mp_type_module },
     .globals = (mp_obj_dict_t *)&mp_module_socket_globals,
 };
+
+// Note: This port doesn't define MICROPY_PY_USOCKET or MICROPY_PY_LWIP so
+// this will not conflict with the common implementation provided by
+// extmod/mod{lwip,usocket}.c.
+MP_REGISTER_MODULE(MP_QSTR_usocket, mp_module_usocket);
