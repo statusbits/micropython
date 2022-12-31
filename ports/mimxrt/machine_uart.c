@@ -33,6 +33,7 @@
 #include "fsl_lpuart.h"
 #include "fsl_iomuxc.h"
 #include CLOCK_CONFIG_H
+#include "pin.h"
 
 #define DEFAULT_UART_BAUDRATE (115200)
 #define DEFAULT_BUFFER_SIZE (256)
@@ -221,7 +222,7 @@ STATIC mp_obj_t machine_uart_init_helper(machine_uart_obj_t *self, size_t n_args
             self->timeout_char = min_timeout_char;
         }
 
-        LPUART_Init(self->lpuart, &self->config, BOARD_BOOTCLOCKRUN_UART_CLK_ROOT); // ??
+        LPUART_Init(self->lpuart, &self->config, BOARD_BOOTCLOCKRUN_UART_CLK_ROOT);
         LPUART_TransferCreateHandle(self->lpuart, &self->handle,  LPUART_UserCallback, self);
         uint8_t *buffer = m_new(uint8_t, rxbuf_len + 1);
         LPUART_TransferStartRingBuffer(self->lpuart, &self->handle, buffer, rxbuf_len);
@@ -469,13 +470,12 @@ STATIC const mp_stream_p_t uart_stream_p = {
     .is_text = false,
 };
 
-const mp_obj_type_t machine_uart_type = {
-    { &mp_type_type },
-    .name = MP_QSTR_UART,
-    .print = machine_uart_print,
-    .make_new = machine_uart_make_new,
-    .getiter = mp_identity_getiter,
-    .iternext = mp_stream_unbuffered_iter,
-    .protocol = &uart_stream_p,
-    .locals_dict = (mp_obj_dict_t *)&machine_uart_locals_dict,
-};
+MP_DEFINE_CONST_OBJ_TYPE(
+    machine_uart_type,
+    MP_QSTR_UART,
+    MP_TYPE_FLAG_ITER_IS_STREAM,
+    make_new, machine_uart_make_new,
+    print, machine_uart_print,
+    protocol, &uart_stream_p,
+    locals_dict, &machine_uart_locals_dict
+    );

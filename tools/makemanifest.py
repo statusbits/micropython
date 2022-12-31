@@ -204,15 +204,15 @@ def main():
                             extra_args=args.mpy_cross_flags.split(),
                         )
                     except mpy_cross.CrossCompileError as ex:
-                        print("error compiling {}:".format(target_path))
+                        print("error compiling {}:".format(result.target_path))
                         print(ex.args[0])
                         raise SystemExit(1)
                 ts_outfile = get_timestamp(outfile)
             mpy_files.append(outfile)
         else:
-            assert kind == manifestfile.KIND_FREEZE_MPY
-            mpy_files.append(full_path)
-            ts_outfile = timestamp
+            assert result.kind == manifestfile.KIND_FREEZE_MPY
+            mpy_files.append(result.full_path)
+            ts_outfile = result.timestamp
         ts_newest = max(ts_newest, ts_outfile)
 
     # Check if output file needs generating
