@@ -313,12 +313,12 @@ typedef union _mp_rom_obj_t {
 
 // Cast mp_obj_t to object pointer
 #ifndef MP_OBJ_TO_PTR
-#define MP_OBJ_TO_PTR(o) ((void *)o)
+#define MP_OBJ_TO_PTR(o) ((void *)(o))
 #endif
 
 // Cast object pointer to mp_obj_t
 #ifndef MP_OBJ_FROM_PTR
-#define MP_OBJ_FROM_PTR(p) ((mp_obj_t)p)
+#define MP_OBJ_FROM_PTR(p) ((mp_obj_t)(p))
 #endif
 
 // Macros to create objects that are stored in ROM.
@@ -418,7 +418,7 @@ typedef struct _mp_rom_obj_t { mp_const_obj_t o; } mp_rom_obj_t;
 
 #define MP_DEFINE_CONST_DICT(dict_name, table_name) MP_DEFINE_CONST_DICT_WITH_SIZE(dict_name, table_name, MP_ARRAY_SIZE(table_name))
 
-// These macros are used to declare and define constant staticmethond and classmethod objects
+// These macros are used to declare and define constant staticmethod and classmethod objects
 // You can put "static" in front of the definitions to make them local
 
 #define MP_DECLARE_CONST_STATICMETHOD_OBJ(obj_name) extern const mp_rom_obj_static_class_method_t obj_name
