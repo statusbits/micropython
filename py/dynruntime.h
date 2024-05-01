@@ -29,6 +29,7 @@
 // This header file contains definitions to dynamically implement the static
 // MicroPython runtime API defined in py/obj.h and py/runtime.h.
 
+#include "py/binary.h"
 #include "py/nativeglue.h"
 #include "py/objfun.h"
 #include "py/objstr.h"
@@ -79,7 +80,7 @@ static inline void *m_realloc_dyn(void *ptr, size_t new_num_bytes) {
 /******************************************************************************/
 // Types and objects
 
-#define MP_OBJ_NEW_QSTR(x) MP_OBJ_NEW_QSTR_##x
+#define MP_OBJ_NEW_QSTR(x)                  (mp_fun_table.native_to_obj(x, MP_NATIVE_TYPE_QSTR))
 
 #define mp_type_type                        (*mp_fun_table.type_type)
 #define mp_type_NoneType                    (*mp_obj_get_type(mp_const_none))
@@ -125,7 +126,8 @@ static inline void *m_realloc_dyn(void *ptr, size_t new_num_bytes) {
 #define mp_obj_get_int_truncated(o)         (mp_fun_table.native_from_obj(o, MP_NATIVE_TYPE_UINT))
 #define mp_obj_str_get_str(s)               (mp_obj_str_get_data_dyn((s), NULL))
 #define mp_obj_str_get_data(o, len)         (mp_obj_str_get_data_dyn((o), (len)))
-#define mp_get_buffer_raise(o, bufinfo, fl) (mp_fun_table.get_buffer_raise((o), (bufinfo), (fl)))
+#define mp_get_buffer(o, bufinfo, fl)       (mp_fun_table.get_buffer((o), (bufinfo), (fl)))
+#define mp_get_buffer_raise(o, bufinfo, fl) (mp_fun_table.get_buffer((o), (bufinfo), (fl) | MP_BUFFER_RAISE_IF_UNSUPPORTED))
 #define mp_get_stream_raise(s, flags)       (mp_fun_table.get_stream_raise((s), (flags)))
 #define mp_obj_is_true(o)                   (mp_fun_table.native_from_obj(o, MP_NATIVE_TYPE_BOOL))
 
@@ -183,6 +185,10 @@ static inline void *mp_obj_malloc_helper_dyn(size_t num_bytes, const mp_obj_type
 /******************************************************************************/
 // General runtime functions
 
+#define mp_binary_get_size(struct_type, val_type, palign) (mp_fun_table.binary_get_size((struct_type), (val_type), (palign)))
+#define mp_binary_get_val_array(typecode, p, index) (mp_fun_table.binary_get_val_array((typecode), (p), (index)))
+#define mp_binary_set_val_array(typecode, p, index, val_in) (mp_fun_table.binary_set_val_array((typecode), (p), (index), (val_in)))
+
 #define mp_load_name(qst)                 (mp_fun_table.load_name((qst)))
 #define mp_load_global(qst)               (mp_fun_table.load_global((qst)))
 #define mp_load_attr(base, attr)          (mp_fun_table.load_attr((base), (attr)))
@@ -195,8 +201,8 @@ static inline void *mp_obj_malloc_helper_dyn(size_t num_bytes, const mp_obj_type
 #define mp_unary_op(op, obj)        (mp_fun_table.unary_op((op), (obj)))
 #define mp_binary_op(op, lhs, rhs)  (mp_fun_table.binary_op((op), (lhs), (rhs)))
 
-#define mp_make_function_from_raw_code(rc, context, def_args) \
-    (mp_fun_table.make_function_from_raw_code((rc), (context), (def_args)))
+#define mp_make_function_from_proto_fun(rc, context, def_args) \
+    (mp_fun_table.make_function_from_proto_fun((rc), (context), (def_args)))
 
 #define mp_call_function_n_kw(fun, n_args, n_kw, args) \
     (mp_fun_table.call_function_n_kw((fun), (n_args) | ((n_kw) << 8), args))
@@ -206,9 +212,11 @@ static inline void *mp_obj_malloc_helper_dyn(size_t num_bytes, const mp_obj_type
 
 #define MP_DYNRUNTIME_INIT_ENTRY \
     mp_obj_t old_globals = mp_fun_table.swap_globals(self->context->module.globals); \
-    mp_raw_code_t rc; \
+    mp_raw_code_truncated_t rc; \
+    rc.proto_fun_indicator[0] = MP_PROTO_FUN_INDICATOR_RAW_CODE_0; \
+    rc.proto_fun_indicator[1] = MP_PROTO_FUN_INDICATOR_RAW_CODE_1; \
     rc.kind = MP_CODE_NATIVE_VIPER; \
-    rc.scope_flags = 0; \
+    rc.is_generator = 0; \
     (void)rc;
 
 #define MP_DYNRUNTIME_INIT_EXIT \
@@ -216,7 +224,7 @@ static inline void *mp_obj_malloc_helper_dyn(size_t num_bytes, const mp_obj_type
     return mp_const_none;
 
 #define MP_DYNRUNTIME_MAKE_FUNCTION(f) \
-    (mp_make_function_from_raw_code((rc.fun_data = (f), &rc), self->context, NULL))
+    (mp_make_function_from_proto_fun((rc.fun_data = (f), (const mp_raw_code_t *)&rc), self->context, NULL))
 
 #define mp_import_name(name, fromlist, level) \
     (mp_fun_table.import_name((name), (fromlist), (level)))
